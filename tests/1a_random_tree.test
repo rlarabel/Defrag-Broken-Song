@@ -1,0 +1,47 @@
+echo "Running tests..."
+echo
+
+rm -f defrag
+make
+
+if [ $? -eq 0 ] ; then
+  echo "Pass: Program compiled"
+else
+  echo "Fail: Program did not compile"
+  exit 1
+fi
+
+SEED=$(od -vAn -N4 -tu4 < /dev/urandom)
+rm -rf dirs/
+python3 ./tests/grow_tree.py ./tests/music.mp3 ${SEED}
+./defrag dirs out.mp3 > TESTOUT
+
+if [ $? -eq 0 ] ; then
+  echo "Pass: Program exited zero"
+else
+  echo "Fail: Program did not exit zero"
+  echo "Seed: ${SEED}"
+  rm TESTOUT
+  exit 1
+fi
+
+diff <(md5sum out.mp3 | cut -d' ' -f1) <(echo "96726c8464765869318032405caed000") > DIFFOUT
+
+if [ $? -eq 0 ] ; then
+  echo "Pass: Output is correct"
+else
+  echo "Fail: Output is not correct"
+  cat DIFFOUT
+  echo "Seed: ${SEED}"
+  rm TESTOUT
+  rm DIFFOUT
+  exit 1
+fi
+
+echo
+echo "All tests passed."
+
+rm TESTOUT
+rm DIFFOUT
+exit 0
+
